@@ -1,27 +1,36 @@
-// see SignupForm.js for comments
 import { useState } from 'react';
-import type { ChangeEvent, FormEvent } from 'react';
+import { useMutation } from '@apollo/client';
 import { Form, Button, Alert } from 'react-bootstrap';
-
-import { loginUser } from '../utils/API';
+import { LOGIN_USER } from '../graphql/mutations';  // Import the LOGIN_USER mutation
 import Auth from '../utils/auth';
 import type { User } from '../models/User';
 
-// biome-ignore lint/correctness/noEmptyPattern: <explanation>
-const LoginForm = ({}: { handleModalClose: () => void }) => {
+const LoginForm = ({ handleModalClose }: { handleModalClose: () => void }) => {
   const [userFormData, setUserFormData] = useState<User>({ username: '', email: '', password: '', savedBooks: [] });
   const [validated] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
 
-  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+  // Apollo mutation hook
+  const [loginUser, { loading }] = useMutation(LOGIN_USER, {
+    onCompleted: (data) => {
+      const { token } = data.login;
+      Auth.login(token);  // Use your custom Auth logic
+      handleModalClose();  // Optionally close the modal after successful login
+    },
+    onError: () => {
+      setShowAlert(true);
+    },
+  });
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
     setUserFormData({ ...userFormData, [name]: value });
   };
 
-  const handleFormSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    // check if form has everything (as per react-bootstrap docs)
+    // Validate form
     const form = event.currentTarget;
     if (form.checkValidity() === false) {
       event.preventDefault();
@@ -29,19 +38,19 @@ const LoginForm = ({}: { handleModalClose: () => void }) => {
     }
 
     try {
-      const response = await loginUser(userFormData);
-
-      if (!response.ok) {
-        throw new Error('something went wrong!');
-      }
-
-      const { token } = await response.json();
-      Auth.login(token);
+      // Call the GraphQL mutation
+      await loginUser({
+        variables: {
+          email: userFormData.email,
+          password: userFormData.password,
+        },
+      });
     } catch (err) {
       console.error(err);
       setShowAlert(true);
     }
 
+    // Clear form data after submit
     setUserFormData({
       username: '',
       email: '',
@@ -85,7 +94,7 @@ const LoginForm = ({}: { handleModalClose: () => void }) => {
           disabled={!(userFormData.email && userFormData.password)}
           type='submit'
           variant='success'>
-          Submit
+          {loading ? 'Loading...' : 'Submit'}
         </Button>
       </Form>
     </>

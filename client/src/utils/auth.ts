@@ -1,4 +1,4 @@
-// use this to decode a token and get the user's information out of it
+// decode a token and get the user's information out of it
 import { jwtDecode } from 'jwt-decode';
 
 interface UserToken {
@@ -6,7 +6,7 @@ interface UserToken {
   exp: number;
 }
 
-// create a new class to instantiate for a user
+// new class to instantiate for a user
 class AuthService {
   // get user data
   getProfile() {
@@ -15,9 +15,9 @@ class AuthService {
 
   // check if user's logged in
   loggedIn() {
-    // Checks if there is a saved token and it's still valid
+    // Checks if there is a saved token 
     const token = this.getToken();
-    return !!token && !this.isTokenExpired(token); // handwaiving here
+    return !!token && !this.isTokenExpired(token); 
   }
 
   // check if token is expired
@@ -40,15 +40,19 @@ class AuthService {
   }
 
   login(idToken: string) {
-    // Saves user token to localStorage
-    localStorage.setItem('id_token', idToken);
-    window.location.assign('/');
+    console.log("Received idToken:", idToken);  // Log the token
+    if (idToken) {
+      localStorage.setItem('id_token', idToken);
+      window.location.assign('/');
+    } else {
+      console.error("No idToken received during login");
+    }
   }
 
   logout() {
     // Clear user token and profile data from localStorage
     localStorage.removeItem('id_token');
-    // this will reload the page and reset the state of the application
+    // reload the page and reset the state of the application
     window.location.assign('/');
   }
 }

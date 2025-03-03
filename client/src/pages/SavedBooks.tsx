@@ -1,48 +1,21 @@
-import { useState, useEffect } from 'react';
 import { Container, Card, Button, Row, Col } from 'react-bootstrap';
-
-import { getMe, deleteBook } from '../utils/API';
+import { GET_ME } from '../graphql/queries';
+import { REMOVE_BOOK } from '../graphql/mutations'; // Import your REMOVE_BOOK mutation
+import { useQuery, useMutation } from '@apollo/client';
 import Auth from '../utils/auth';
 import { removeBookId } from '../utils/localStorage';
-import type { User } from '../models/User';
+import { Book } from '../models/Book';  // Import the Book interface
 
 const SavedBooks = () => {
-  const [userData, setUserData] = useState<User>({
-    username: '',
-    email: '',
-    password: '',
-    savedBooks: [],
-  });
+  const { loading, data } = useQuery(GET_ME);
+  const [removeBook] = useMutation(REMOVE_BOOK);  // Use the REMOVE_BOOK mutation
 
-  // use this to determine if `useEffect()` hook needs to run again
-  const userDataLength = Object.keys(userData).length;
+  const userData = data?.me || {};
 
-  useEffect(() => {
-    const getUserData = async () => {
-      try {
-        const token = Auth.loggedIn() ? Auth.getToken() : null;
+  // Type the savedBooks array explicitly to Book[]
+  const savedBooks: Book[] = userData.savedBooks || [];
 
-        if (!token) {
-          return false;
-        }
-
-        const response = await getMe(token);
-
-        if (!response.ok) {
-          throw new Error('something went wrong!');
-        }
-
-        const user = await response.json();
-        setUserData(user);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    getUserData();
-  }, [userDataLength]);
-
-  // create function that accepts the book's mongo _id value as param and deletes the book from the database
+  // Create function that accepts the book's mongo _id value as param and deletes the book from the database
   const handleDeleteBook = async (bookId: string) => {
     const token = Auth.loggedIn() ? Auth.getToken() : null;
 
@@ -51,23 +24,23 @@ const SavedBooks = () => {
     }
 
     try {
-      const response = await deleteBook(bookId, token);
+      const response = await removeBook({
+        variables: { bookId }, // Pass the bookId to the mutation
+      });
 
-      if (!response.ok) {
-        throw new Error('something went wrong!');
+      if (response.errors) {
+        throw new Error('Something went wrong!');
       }
 
-      const updatedUser = await response.json();
-      setUserData(updatedUser);
-      // upon success, remove book's id from localStorage
+      // Remove the book from local storage
       removeBookId(bookId);
     } catch (err) {
       console.error(err);
     }
   };
 
-  // if data isn't here yet, say so
-  if (!userDataLength) {
+  // If data isn't here yet, show a loading message
+  if (loading) {
     return <h2>LOADING...</h2>;
   }
 
@@ -84,17 +57,17 @@ const SavedBooks = () => {
       </div>
       <Container>
         <h2 className='pt-5'>
-          {userData.savedBooks.length
-            ? `Viewing ${userData.savedBooks.length} saved ${
-                userData.savedBooks.length === 1 ? 'book' : 'books'
-              }:`
+          {savedBooks.length
+            ? `Viewing ${savedBooks.length} saved ${
+                savedBooks.length === 1 ? 'book' : 'books'
+              }:` 
             : 'You have no saved books!'}
         </h2>
         <Row>
-          {userData.savedBooks.map((book) => {
+          {savedBooks.map((book) => {  // Now, TypeScript knows that `book` is of type `Book`
             return (
-              <Col md='4'>
-                <Card key={book.bookId} border='dark'>
+              <Col md='4' key={book.bookId}>
+                <Card border='dark'>
                   {book.image ? (
                     <Card.Img
                       src={book.image}
