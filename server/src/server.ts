@@ -22,7 +22,7 @@ const MONGO_URI = 'mongodb+srv://merksianipar:Loremmerri12@bootcamp.agao5.mongod
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production' ? 'Replace with your actual frontend URL' : 'http://localhost:10000', // Allow your frontend to make requests to this server
+  origin: process.env.NODE_ENV === 'production' ? 'https://mern-graphql-refactor-3gat.onrender.com' : 'http://localhost:10000', // Allow your frontend to make requests to this server
   credentials: true,  // Allows cookies to be sent with requests if needed
 };
 
